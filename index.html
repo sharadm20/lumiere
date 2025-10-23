@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Magnet Player</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <!-- Input Screen -->
+    <div id="input-screen" class="screen active">
+        <div class="container">
+            <h1>Magnet Player</h1>
+            <p>Enter a magnet URL to start streaming</p>
+            <form id="magnet-form">
+                <input type="text" id="magnet-input" placeholder="magnet:?xt=urn:btih:..." required>
+                <button type="submit" id="play-btn">Play</button>
+            </form>
+            <div id="error-message" class="error"></div>
+        </div>
+    </div>
+
+    <!-- Player Screen -->
+    <div id="player-screen" class="screen">
+        <div class="player-container">
+            <div class="player-header">
+                <button id="back-btn" class="back-button">← Back</button>
+                <div id="video-info">
+                    <span id="video-title">Loading...</span>
+                </div>
+            </div>
+            <div class="video-wrapper">
+                <video id="video-player" controls>
+                    Your browser does not support the video tag.
+                </video>
+            </div>
+            <div id="loading-indicator" class="loading">
+                <div class="spinner"></div>
+                <p>Loading torrent...</p>
+            </div>
+            <div id="torrent-info" class="torrent-info">
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progress-fill"></div>
+                </div>
+                <div class="stats">
+                    <span id="download-speed">0 B/s</span>
+                    <span id="peers">0 peers</span>
+                    <span id="progress">0%</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Context Menu -->
+    <div id="context-menu" class="context-menu">
+        <div class="context-menu-item" data-action="play-pause">Play/Pause</div>
+        <div class="context-menu-item" data-action="fullscreen">Fullscreen</div>
+        <div class="context-menu-item" data-action="back">Back to Input</div>
+    </div>
+
+    <script src="renderer.js"></script>
+</body>
+</html>

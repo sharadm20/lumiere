@@ -1,0 +1,57 @@
+{
+  "name": "magnetplayer",
+  "version": "0.1.0-beta",
+  "description": "A cross-platform magnet URL video player built with Electron and WebTorrent",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "dev": "cross-env NODE_ENV=development electron .",
+    "build": "electron-builder",
+    "build:win": "electron-builder --win",
+    "build:mac": "electron-builder --mac",
+    "build:linux": "electron-builder --linux",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "electron",
+    "video",
+    "player",
+    "torrent",
+    "magnet",
+    "streaming"
+  ],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "devDependencies": {
+    "cross-env": "^10.1.0",
+    "electron": "^25.0.0",
+    "electron-builder": "^24.13.3"
+  },
+  "dependencies": {
+    "webtorrent": "^2.8.4"
+  },
+  "build": {
+    "appId": "com.magnetplayer.app",
+    "productName": "Magnet Player",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "**/*",
+      "!dist/**/*",
+      "!build/**/*",
+      "!*.md",
+      "!docs/**/*"
+    ],
+    "win": {
+      "target": "nsis"
+    },
+    "mac": {
+      "target": "dmg"
+    },
+    "linux": {
+      "target": "AppImage"
+    }
+  }
+}
