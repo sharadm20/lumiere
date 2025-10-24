@@ -27,7 +27,9 @@ const progress = document.getElementById('progress');
 
 // Initialize WebTorrent client
 function initWebTorrent() {
+    console.log('Initializing WebTorrent client...');
     client = new WebTorrent();
+    console.log('WebTorrent client initialized');
 }
 
 // Switch between screens
@@ -273,7 +275,9 @@ function hideContextMenu() {
 
 // Event Listeners
 document.addEventListener('DOMContentLoaded', () => {
+    console.log('DOM content loaded, initializing Lumière...');
     initWebTorrent();
+    console.log('Lumière renderer initialized successfully');
 
     // Form submission
     magnetForm.addEventListener('submit', (e) => {

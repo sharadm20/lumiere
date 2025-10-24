@@ -1,10 +1,41 @@
-const { app, BrowserWindow, Menu, ipcMain } = require('electron');
+// Test Electron import
+console.log('Loading Electron...');
+const electron = require('electron');
+console.log('Electron loaded:', Object.keys(electron));
+
+// Try different import methods
+let app, BrowserWindow, Menu, ipcMain;
+
+try {
+  // Method 1: Direct destructuring
+  ({ app, BrowserWindow, Menu, ipcMain } = require('electron'));
+  console.log('Method 1 - app:', typeof app);
+} catch (e) {
+  console.log('Method 1 failed:', e.message);
+  try {
+    // Method 2: Access from electron object
+    app = electron.app;
+    BrowserWindow = electron.BrowserWindow;
+    Menu = electron.Menu;
+    ipcMain = electron.ipcMain;
+    console.log('Method 2 - app:', typeof app);
+  } catch (e2) {
+    console.log('Method 2 failed:', e2.message);
+    // Method 3: Check if electron is an array
+    if (Array.isArray(electron)) {
+      console.log('Electron is an array, trying to find exports...');
+      // This shouldn't happen, but let's check
+    }
+  }
+}
 const path = require('path');
 
 let mainWindow;
 
 // Export functions for testing
 function createWindow() {
+  console.log('Creating main window...');
+
   // Create the browser window
   mainWindow = new BrowserWindow({
     width: 1200,
@@ -15,20 +46,35 @@ function createWindow() {
       enableRemoteModule: true
     },
     icon: path.join(__dirname, 'assets', 'icon.png'), // Optional: add an icon later
-    title: 'Lumière'
+    title: 'Lumière',
+    show: false // Don't show until ready-to-show
   });
 
+  console.log('Loading index.html...');
   // Load the app
-  mainWindow.loadFile('index.html');
+  mainWindow.loadFile('index.html').then(() => {
+    console.log('HTML file loaded successfully');
+    mainWindow.show();
+  }).catch((err) => {
+    console.error('Failed to load HTML file:', err);
+  });
 
   // Open DevTools in development
   if (process.env.NODE_ENV === 'development') {
+    console.log('Opening DevTools...');
     mainWindow.webContents.openDevTools();
   }
 
   // Emitted when the window is closed
   mainWindow.on('closed', () => {
+    console.log('Main window closed');
     mainWindow = null;
+  });
+
+  // Handle window ready to show
+  mainWindow.once('ready-to-show', () => {
+    console.log('Window ready to show');
+    mainWindow.show();
   });
 }
 
@@ -62,7 +108,8 @@ function createWindow() {
 
 // This method will be called when Electron has finished initialization
 app.on('ready', () => {
-  // createWindow();
+  console.log('Electron app ready, creating window...');
+  createWindow();
 });
 
 // Export functions for testing
