@@ -1,8 +1,16 @@
 {
-  "name": "magnetplayer",
+  "name": "lumiere",
   "version": "0.1.0-beta",
-  "description": "A cross-platform magnet URL video player built with Electron and WebTorrent",
+  "description": "A cross-platform magnet URL video player built with Electron and WebTorrent - Lumière brings light to your torrent streaming experience",
   "main": "main.js",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/sharadm20/lumiere.git"
+  },
+  "homepage": "https://github.com/sharadm20/lumiere",
+  "bugs": {
+    "url": "https://github.com/sharadm20/lumiere/issues"
+  },
   "scripts": {
     "start": "electron .",
     "dev": "cross-env NODE_ENV=development electron .",
@@ -10,7 +18,9 @@
     "build:win": "electron-builder --win",
     "build:mac": "electron-builder --mac",
     "build:linux": "electron-builder --linux",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage"
   },
   "keywords": [
     "electron",
@@ -18,22 +28,25 @@
     "player",
     "torrent",
     "magnet",
-    "streaming"
+    "streaming",
+    "lumiere"
   ],
-  "author": "",
+  "author": "sharadm20",
   "license": "ISC",
   "type": "commonjs",
   "devDependencies": {
     "cross-env": "^10.1.0",
     "electron": "^25.0.0",
-    "electron-builder": "^24.13.3"
+    "electron-builder": "^24.13.3",
+    "jest": "^30.2.0",
+    "jsdom": "^27.0.1"
   },
   "dependencies": {
     "webtorrent": "^2.8.4"
   },
   "build": {
-    "appId": "com.magnetplayer.app",
-    "productName": "Magnet Player",
+    "appId": "com.lumiere.player",
+    "productName": "Lumière",
     "directories": {
       "output": "dist"
     },

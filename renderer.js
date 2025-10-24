@@ -107,6 +107,7 @@ function loadMagnet(magnetUrl) {
             // Set up torrent event listeners
             torrent.on('ready', () => {
                 console.log('Torrent ready');
+                console.log('Torrent files:', torrent.files.map(f => ({ name: f.name, size: f.length })));
                 videoTitle.textContent = torrent.name || 'Unknown';
 
                 // Find the largest video file
@@ -119,9 +120,11 @@ function loadMagnet(magnetUrl) {
                 }, null);
 
                 if (videoFile) {
+                    console.log('Found video file:', videoFile.name, 'Size:', videoFile.length);
                     hideLoading();
                     playVideo(videoFile);
                 } else {
+                    console.log('No video files found in torrent');
                     showError('No video files found in this torrent.');
                     switchScreen('input');
                 }
@@ -151,19 +154,101 @@ function loadMagnet(magnetUrl) {
 
 // Play video file
 function playVideo(file) {
-    const fileURL = file.createReadStream();
-    const chunks = [];
+    console.log('Playing video file:', file.name, 'Size:', file.length);
 
-    fileURL.on('data', (chunk) => {
-        chunks.push(chunk);
-    });
+    // Use WebTorrent's streaming URL for better performance
+    try {
+        const streamURL = file.createReadStream();
+        const chunks = [];
 
-    fileURL.on('end', () => {
-        const blob = new Blob(chunks, { type: 'video/mp4' });
-        const url = URL.createObjectURL(blob);
-        videoPlayer.src = url;
-        videoPlayer.play();
-    });
+        let totalBytes = 0;
+        const maxBufferSize = 50 * 1024 * 1024; // 50MB buffer
+
+        streamURL.on('data', (chunk) => {
+            chunks.push(chunk);
+            totalBytes += chunk.length;
+
+            // If we have enough data to start playing, create the blob
+            if (totalBytes > maxBufferSize || totalBytes >= file.length) {
+                createAndPlayBlob();
+            }
+        });
+
+        streamURL.on('end', () => {
+            console.log('Stream ended, total bytes:', totalBytes);
+            if (chunks.length > 0) {
+                createAndPlayBlob();
+            }
+        });
+
+        streamURL.on('error', (err) => {
+            console.error('Stream error:', err);
+            showError('Error streaming video file: ' + err.message);
+        });
+
+        function createAndPlayBlob() {
+            if (chunks.length === 0) return;
+
+            console.log('Creating blob from', chunks.length, 'chunks, total size:', totalBytes);
+
+            // Determine MIME type based on file extension
+            let mimeType = 'video/mp4'; // default
+            const ext = file.name.split('.').pop().toLowerCase();
+            switch (ext) {
+                case 'mp4':
+                    mimeType = 'video/mp4';
+                    break;
+                case 'mkv':
+                    mimeType = 'video/x-matroska';
+                    break;
+                case 'avi':
+                    mimeType = 'video/x-msvideo';
+                    break;
+                case 'mov':
+                    mimeType = 'video/quicktime';
+                    break;
+                case 'wmv':
+                    mimeType = 'video/x-ms-wmv';
+                    break;
+                case 'flv':
+                    mimeType = 'video/x-flv';
+                    break;
+                case 'webm':
+                    mimeType = 'video/webm';
+                    break;
+            }
+
+            const blob = new Blob(chunks, { type: mimeType });
+            const url = URL.createObjectURL(blob);
+            console.log('Blob created, setting video source...');
+
+            // Clear previous event listeners
+            videoPlayer.removeEventListener('loadeddata', onVideoLoaded);
+            videoPlayer.removeEventListener('error', onVideoError);
+
+            // Add new event listeners
+            videoPlayer.addEventListener('loadeddata', onVideoLoaded);
+            videoPlayer.addEventListener('error', onVideoError);
+
+            videoPlayer.src = url;
+
+            function onVideoLoaded() {
+                console.log('Video loaded successfully');
+                videoPlayer.play().catch(err => {
+                    console.error('Error playing video:', err);
+                    showError('Error playing video: ' + err.message);
+                });
+            }
+
+            function onVideoError(e) {
+                console.error('Video element error:', e);
+                showError('Error loading video file. The file format may not be supported.');
+            }
+        }
+    } catch (error) {
+        console.error('Error in playVideo:', error);
+        showError('Error initializing video playback: ' + error.message);
+    }
 }
 
 // Show error message

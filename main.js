@@ -3,6 +3,7 @@ const path = require('path');
 
 let mainWindow;
 
+// Export functions for testing
 function createWindow() {
   // Create the browser window
   mainWindow = new BrowserWindow({
@@ -14,7 +15,7 @@ function createWindow() {
       enableRemoteModule: true
     },
     icon: path.join(__dirname, 'assets', 'icon.png'), // Optional: add an icon later
-    title: 'Magnet Player'
+    title: 'Lumière'
   });
 
   // Load the app
@@ -31,10 +32,45 @@ function createWindow() {
   });
 }
 
+// function createWindow() {
+//   // Create the browser window
+//   mainWindow = new BrowserWindow({
+//     width: 1200,
+//     height: 800,
+//     webPreferences: {
+//       nodeIntegration: true,
+//       contextIsolation: false,
+//       enableRemoteModule: true
+//     },
+//     icon: path.join(__dirname, 'assets', 'icon.png'), // Optional: add an icon later
+//     title: 'Magnet Player'
+//   });
+
+//   // Load the app
+//   mainWindow.loadFile('index.html');
+
+//   // Open DevTools in development
+//   if (process.env.NODE_ENV === 'development') {
+//     mainWindow.webContents.openDevTools();
+//   }
+
+//   // Emitted when the window is closed
+//   mainWindow.on('closed', () => {
+//     mainWindow = null;
+//   });
+// }
+
 // This method will be called when Electron has finished initialization
 app.on('ready', () => {
-  createWindow();
+  // createWindow();
 });
+
+// Export functions for testing
+module.exports = {
+  createWindow,
+  get mainWindow() { return mainWindow; },
+  set mainWindow(value) { mainWindow = value; }
+};
 
 // Quit when all windows are closed
 app.on('window-all-closed', () => {
@@ -47,7 +83,7 @@ app.on('window-all-closed', () => {
 app.on('activate', () => {
   // On macOS it's common to re-create a window when dock icon is clicked
   if (BrowserWindow.getAllWindows().length === 0) {
-    createWindow();
+    // createWindow();
   }
 });
 
@@ -91,7 +127,7 @@ const template = [
     label: 'Help',
     submenu: [
       {
-        label: 'About Magnet Player',
+        label: 'About Lumière',
         click: () => {
           // Show about dialog
         }
