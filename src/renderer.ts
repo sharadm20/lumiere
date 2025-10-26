@@ -132,6 +132,11 @@ function loadMagnet(magnetUrl: string): void {
       torrent = torrentObj as Torrent;
 
       // Set up torrent event listeners
+      torrent.on('metadata', () => {
+        console.log('Torrent metadata loaded');
+        if (torrent && videoTitle) videoTitle.textContent = torrent.name || 'Unknown - Loading...';
+      });
+
       torrent.on('ready', () => {
         console.log('Torrent ready');
         if (torrent) {  // Check that torrent is still available
@@ -142,8 +147,8 @@ function loadMagnet(magnetUrl: string): void {
           if (videoFile) {
             console.log('Found video file:', videoFile.name, 'Size:', videoFile.length);
             if (videoTitle) videoTitle.textContent = torrent.name || 'Unknown';
-            hideLoading();
-            playVideo(videoFile);
+            // Don't hide loading yet - wait for enough data to stream
+            startStreamingWhenReady(videoFile);
           } else {
             console.log('No video files found in torrent');
             showError('No video files found in this torrent.');
@@ -154,6 +159,20 @@ function loadMagnet(magnetUrl: string): void {
 
       torrent.on('download', () => {
         updateStats();
+        
+        // Update progress bar in the loading screen as well
+        if (torrent) {
+          const downloaded = torrent.downloaded;
+          const total = torrent.length;
+          const progressPercent = total > 0 ? (downloaded / total) * 100 : 0;
+          
+          if (progressFill) {
+            progressFill.style.width = `${progressPercent}%`;
+          }
+          if (progress) {
+            progress.textContent = `${progressPercent.toFixed(1)}%`;
+          }
+        }
       });
 
       torrent.on('done', () => {
@@ -383,6 +402,46 @@ function fallbackToManualStreaming(file: TorrentFile, mimeType: string): void {
     console.error('Stream error:', err);
     showError('Error streaming video file: ' + err.message);
   });
+}
+
+// Function to start streaming when enough data is available
+function startStreamingWhenReady(file: TorrentFile): void {
+  if (!torrent) {
+    showError('Torrent not available');
+    return;
+  }
+
+  // Set up a check to see if we have enough data to start streaming
+  const checkDataAvailability = () => {
+    if (!torrent) return; // Guard clause
+    
+    // Calculate progress
+    const progressPercent = torrent.length > 0 ? (torrent.downloaded / torrent.length) * 100 : 0;
+    
+    // Update the loading screen with progress
+    if (progressFill) {
+      progressFill.style.width = `${progressPercent}%`;
+    }
+    if (progress) {
+      progress.textContent = `${progressPercent.toFixed(1)}%`;
+    }
+    
+    // Check if we have enough data to start streaming (e.g., 5% or 50MB, whichever is smaller)
+    const minSizeToStart = Math.min(torrent.length * 0.05, 50 * 1024 * 1024); // 5% or 50MB
+    
+    if (torrent.downloaded >= minSizeToStart || progressPercent >= 5) {
+      // We have enough data to start streaming
+      console.log('Enough data downloaded, starting stream');
+      hideLoading();
+      playVideo(file);
+    } else {
+      // Still waiting for data, check again in 1 second
+      setTimeout(checkDataAvailability, 1000);
+    }
+  };
+  
+  // Start checking for data availability
+  checkDataAvailability();
 }
 
 // Show error message
