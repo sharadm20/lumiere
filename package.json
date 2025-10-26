@@ -2,7 +2,7 @@
   "name": "lumiere",
   "version": "0.1.0-beta",
   "description": "A cross-platform magnet URL video player built with Electron and WebTorrent - Lumière brings light to your torrent streaming experience",
-  "main": "main.js",
+  "main": "dist/main.js",
   "repository": {
     "type": "git",
     "url": "https://github.com/sharadm20/lumiere.git"
@@ -12,15 +12,19 @@
     "url": "https://github.com/sharadm20/lumiere/issues"
   },
   "scripts": {
-    "start": "electron .",
-    "dev": "cross-env NODE_ENV=development electron .",
-    "build": "electron-builder",
-    "build:win": "electron-builder --win",
-    "build:mac": "electron-builder --mac",
-    "build:linux": "electron-builder --linux",
+    "start": "npm run build:ts && electron .",
+    "dev": "cross-env NODE_ENV=development concurrently \"npm run watch-ts\" \"npm run electron\"",
+    "build": "npm run build:ts && electron-builder",
+    "build:ts": "tsc",
+    "watch-ts": "tsc -w",
+    "electron": "electron .",
+    "build:win": "npm run build && electron-builder --win",
+    "build:mac": "npm run build && electron-builder --mac",
+    "build:linux": "npm run build && electron-builder --linux",
     "test": "jest",
     "test:watch": "jest --watch",
-    "test:coverage": "jest --coverage"
+    "test:coverage": "jest --coverage",
+    "tsc": "tsc"
   },
   "keywords": [
     "electron",
@@ -35,14 +39,23 @@
   "license": "ISC",
   "type": "commonjs",
   "devDependencies": {
+    "@types/node": "^20.19.23",
+    "@types/webtorrent": "^0.110.1",
+    "@typescript-eslint/eslint-plugin": "^6.21.0",
+    "@typescript-eslint/parser": "^6.21.0",
+    "concurrently": "^9.2.1",
     "cross-env": "^10.1.0",
-    "electron": "^28.0.0",
+    "electron": "^25.0.0",
     "electron-builder": "^24.13.3",
+    "electron-reload": "^2.0.0-alpha.1",
+    "eslint": "^8.57.1",
     "jest": "^30.2.0",
-    "jsdom": "^27.0.1"
+    "jsdom": "^27.0.1",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.9.3"
   },
   "dependencies": {
-    "webtorrent": "^2.8.4"
+    "webtorrent": "^1.8.32"
   },
   "build": {
     "appId": "com.lumiere.player",
