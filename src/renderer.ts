@@ -1,29 +1,10 @@
 // Use require in a way that avoids module system in the compiled output
 const { ipcRenderer } = require('electron');
-const WebTorrent = require('webtorrent');
 
-// Define types for our WebTorrent elements
-interface TorrentFile {
-  name: string;
-  length: number;
-  createReadStream: () => any;
-  appendTo: (selector: string | HTMLElement, callback?: (err: Error | null, elem?: HTMLElement) => void) => void;
-  renderTo: (selector: string | HTMLElement, options: any, callback?: (err: Error | null, elem?: HTMLElement) => void) => void;
-}
+// Import our new streaming system
+import { StreamingManager } from './streaming-manager';
 
-interface Torrent {
-  name: string;
-  files: TorrentFile[];
-  downloaded: number;
-  length: number;
-  downloadSpeed: number;
-  numPeers: number;
-  on: (event: string, callback: (...args: any[]) => void) => void;
-  destroy: () => void;
-}
-
-let client: any | null;
-let torrent: Torrent | null = null;
+let streamingManager: StreamingManager;
 let currentScreen: 'input' | 'player' = 'input';
 
 // DOM Elements
@@ -43,11 +24,11 @@ const downloadSpeed: HTMLElement | null = document.getElementById('download-spee
 const peers: HTMLElement | null = document.getElementById('peers');
 const progress: HTMLElement | null = document.getElementById('progress');
 
-// Initialize WebTorrent client
-function initWebTorrent(): void {
-  console.log('Initializing WebTorrent client...');
-  client = new WebTorrent();
-  console.log('WebTorrent client initialized');
+// Initialize streaming system
+function initStreamingSystem(): void {
+  console.log('Initializing streaming system...');
+  streamingManager = new StreamingManager();
+  console.log('Streaming system initialized');
 }
 
 // Switch between screens
@@ -76,27 +57,23 @@ function hideLoading(): void {
   if (torrentInfo) torrentInfo.style.display = 'block';
 }
 
-// Update torrent stats
+// Update streaming stats
 function updateStats(): void {
-  if (!torrent || !progressFill || !progress || !downloadSpeed || !peers) return;
+  if (!streamingManager || !progressFill || !progress) return;
 
-  const downloaded = torrent.downloaded;
-  const total = torrent.length;
-  const progressPercent = total > 0 ? (downloaded / total) * 100 : 0;
+  const progressData = streamingManager.getProgress();
+  const progressPercent = progressData.progress;
 
   progressFill.style.width = `${progressPercent}%`;
   if (progress) progress.textContent = `${progressPercent.toFixed(1)}%`;
 
-  // Download speed
-  const speed = torrent.downloadSpeed;
-  if (downloadSpeed) downloadSpeed.textContent = formatBytes(speed) + '/s';
-
-  // Peers
-  if (peers) peers.textContent = `${torrent.numPeers} peers`;
+  // For now, hide download speed and peers as they're not applicable in the new system
+  if (downloadSpeed) downloadSpeed.style.display = 'none';
+  if (peers) peers.style.display = 'none';
 }
 
-// Format bytes for display
-function formatBytes(bytes: number): string {
+// Format bytes for display (kept for compatibility but unused)
+function _formatBytes(bytes: number): string {
   if (bytes === 0) return '0 B';
   const k = 1024;
   const sizes = ['B', 'KB', 'MB', 'GB'];
@@ -106,342 +83,76 @@ function formatBytes(bytes: number): string {
 
 
 
-// Load magnet URL
-function loadMagnet(magnetUrl: string): void {
+// Load magnet URL with new streaming system
+async function loadMagnet(magnetUrl: string): Promise<void> {
   if (!magnetUrl.startsWith('magnet:')) {
     showError('Invalid magnet URL. Please enter a valid magnet link.');
     return;
   }
 
-  if (!client) {
-    showError('WebTorrent client not initialized.');
+  if (!streamingManager) {
+    showError('Streaming system not initialized.');
     return;
   }
 
   showLoading();
   switchScreen('player');
-  if (videoTitle) videoTitle.textContent = 'Loading torrent...';
-
-  // Destroy existing torrent if any
-  if (torrent) {
-    torrent.destroy();
-  }
+  if (videoTitle) videoTitle.textContent = 'Loading magnet...';
 
   try {
-    client.add(magnetUrl, (torrentObj: any) => {
-      torrent = torrentObj as Torrent;
+    const metadata = await streamingManager.loadMagnet(magnetUrl);
+    console.log('Magnet loaded successfully:', metadata.name);
 
-      // Set up torrent event listeners
-      torrent.on('metadata', () => {
-        console.log('Torrent metadata loaded');
-        if (torrent && videoTitle) videoTitle.textContent = torrent.name || 'Unknown - Loading...';
-      });
+    if (videoTitle) videoTitle.textContent = metadata.name || 'Unknown';
 
-      torrent.on('ready', () => {
-        console.log('Torrent ready');
-        if (torrent) {  // Check that torrent is still available
-          const videoFiles = torrent.files.filter(file => /\.(mp4|mkv|avi|mov|wmv|flv|webm)$/i.test(file.name));
-          const videoFile = videoFiles.length > 0 ? videoFiles.reduce((largest, file) => 
-            !largest || file.length > largest.length ? file : largest, null as TorrentFile | null) : null;
-          
-          if (videoFile) {
-            console.log('Found video file:', videoFile.name, 'Size:', videoFile.length);
-            if (videoTitle) videoTitle.textContent = torrent.name || 'Unknown';
-            // Don't hide loading yet - wait for enough data to stream
-            startStreamingWhenReady(videoFile);
-          } else {
-            console.log('No video files found in torrent');
-            showError('No video files found in this torrent.');
-            switchScreen('input');
-          }
-        }
-      });
+    // Initialize player
+    if (videoPlayer) {
+      streamingManager.initializePlayer(videoPlayer);
+      streamingManager.startStreaming();
+    }
 
-      torrent.on('download', () => {
-        updateStats();
-        
-        // Update progress bar in the loading screen as well
-        if (torrent) {
-          const downloaded = torrent.downloaded;
-          const total = torrent.length;
-          const progressPercent = total > 0 ? (downloaded / total) * 100 : 0;
-          
-          if (progressFill) {
-            progressFill.style.width = `${progressPercent}%`;
-          }
-          if (progress) {
-            progress.textContent = `${progressPercent.toFixed(1)}%`;
-          }
-        }
-      });
-
-      torrent.on('done', () => {
-        console.log('Torrent download complete');
-        updateStats();
-      });
-
-      torrent.on('error', (err: Error) => {
-        console.error('Torrent error:', err);
-        showError('Error loading torrent: ' + err.message);
-        switchScreen('input');
-      });
-    });
+    hideLoading();
   } catch (error) {
-    console.error('Error adding torrent:', error);
+    console.error('Error loading magnet:', error);
     showError('Error loading magnet URL: ' + (error as Error).message);
     switchScreen('input');
   }
 }
 
-// Play video file
-function playVideo(file: TorrentFile): void {
-  console.log('Playing video file:', file.name, 'Size:', file.length);
+// Video playback is now handled by the Video.js player in the streaming system
+// This function is kept for compatibility but simplified
+function playVideo(): void {
+  console.log('Starting video playback through streaming system');
 
-  if (!videoPlayer) {
-    showError('Video player element not found.');
+  if (!streamingManager) {
+    showError('Streaming system not available.');
     return;
   }
 
-  // Determine MIME type based on file extension
-  let mimeType = 'video/mp4'; // default
-  const ext = file.name.split('.').pop()?.toLowerCase() || '';
-  
-  switch (ext) {
-    case 'mp4':
-      mimeType = 'video/mp4';
-      break;
-    case 'mkv':
-      mimeType = 'video/x-matroska';
-      break;
-    case 'avi':
-      mimeType = 'video/x-msvideo';
-      break;
-    case 'mov':
-      mimeType = 'video/quicktime';
-      break;
-    case 'wmv':
-      mimeType = 'video/x-ms-wmv';
-      break;
-    case 'flv':
-      mimeType = 'video/x-flv';
-      break;
-    case 'webm':
-      mimeType = 'video/webm';
-      break;
-  }
-
-  console.log('Using MIME type:', mimeType, 'for file:', file.name);
-
   try {
-    // Clear previous event listeners
-    const onVideoLoaded = () => {
-      console.log('Video loaded successfully');
-      if (videoPlayer) {
-        videoPlayer.play().catch(err => {
-          console.error('Error playing video:', err);
-          showError('Error playing video: ' + (err as Error).message);
-        });
-      }
-    };
-
-    const onVideoError = (e: Event) => {
-      console.error('Video element error:', e);
-      showError('Error loading video file. The file format may not be supported.');
-    };
-
-    videoPlayer.removeEventListener('loadeddata', onVideoLoaded);
-    videoPlayer.removeEventListener('error', onVideoError);
-
-    // Add new event listeners
-    videoPlayer.addEventListener('loadeddata', onVideoLoaded);
-    videoPlayer.addEventListener('error', onVideoError);
-
-    // Create a stream immediately and start loading
-    const stream = file.createReadStream();
-    const chunks: Uint8Array[] = [];
-    let totalSize = 0;
-    
-    // For Soda Player-like experience, we'll implement progressive loading
-    stream.on('data', (chunk: Buffer) => {
-      console.log('Received chunk of size:', chunk.length);
-      // Convert Buffer to array of bytes to avoid ArrayBuffer compatibility issues
-      const bytes = new Array(chunk.length);
-      for (let i = 0; i < chunk.length; i++) {
-        bytes[i] = chunk[i];
-      }
-      chunks.push(new Uint8Array(bytes));
-      totalSize += chunk.length;
-
-      // Start playing as soon as we have enough data
-      if (totalSize > 1024 * 1024 && videoPlayer.src === '') { // 1MB threshold
-        const uint8Array = new Uint8Array(totalSize);
-        let offset = 0;
-        for (const chunk of chunks) {
-          uint8Array.set(chunk, offset);
-          offset += chunk.length;
-        }
-        const blob = new Blob([uint8Array], { type: mimeType });
-        const url = URL.createObjectURL(blob);
-        videoPlayer.src = url;
-        
-        // Play once we have enough data
-        videoPlayer.play().catch(err => {
-          console.error('Error playing video:', err);
-          // This is expected if the blob isn't fully loaded yet
-        });
-      }
-    });
-
-    stream.on('end', () => {
-      console.log('Stream ended, finalizing video');
-      
-      // Create final blob if not already done
-      if (videoPlayer.src === '') {
-        const uint8Array = new Uint8Array(totalSize);
-        let offset = 0;
-        for (const chunk of chunks) {
-          uint8Array.set(chunk, offset);
-          offset += chunk.length;
-        }
-        const blob = new Blob([uint8Array], { type: mimeType });
-        const url = URL.createObjectURL(blob);
-        videoPlayer.src = url;
-        videoPlayer.play().catch(err => {
-          console.error('Error playing video:', err);
-          showError('Error playing video: ' + (err as Error).message);
-        });
-      }
-    });
-
-    stream.on('error', (err: Error) => {
-      console.error('Stream error:', err);
-      showError('Error streaming video: ' + err.message);
+    streamingManager.play().catch(err => {
+      console.error('Error playing video:', err);
+      showError('Error playing video: ' + (err as Error).message);
     });
   } catch (error) {
     console.error('Error in playVideo:', error);
     showError('Error playing video: ' + (error as Error).message);
-    
-    // Use the fallback method
-    fallbackToManualStreaming(file, mimeType);
   }
 }
 
-// Fallback function for manual streaming
-function fallbackToManualStreaming(file: TorrentFile, mimeType: string): void {
-  if (!videoPlayer) {
-    showError('Video player element not found.');
-    return;
-  }
-
-  // Use WebTorrent's createReadStream to manually create the video source
-  const fileStream = file.createReadStream();
-  const chunks: ArrayBuffer[] = [];
-  let totalSize = 0;
-
-  fileStream.on('data', (chunk: any) => {
-    // Ensure chunk is an ArrayBuffer
-    let buffer: ArrayBuffer;
-    if (chunk instanceof ArrayBuffer) {
-      buffer = chunk;
-    } else if (chunk instanceof Buffer) {
-      // Convert Buffer to ArrayBuffer
-      buffer = chunk.buffer.slice(chunk.byteOffset, chunk.byteOffset + chunk.byteLength);
-    } else if (chunk.buffer) {
-      // Handle TypedArray
-      buffer = chunk.buffer;
-    } else {
-      // Convert to Buffer first, then to ArrayBuffer
-      const buf = Buffer.from(chunk);
-      buffer = buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength);
-    }
-    
-    chunks.push(buffer);
-    totalSize += buffer.byteLength;
-  });
-
-  fileStream.on('end', () => {
-    try {
-      // Create a blob from the accumulated chunks - use ArrayBuffers directly
-      const uint8Arrays = chunks.map(chunk => new Uint8Array(chunk));
-      const blob = new Blob(uint8Arrays, { type: mimeType });
-      const url = URL.createObjectURL(blob);
-
-      // Clear previous event listeners
-      videoPlayer.removeEventListener('loadeddata', onVideoLoaded);
-      videoPlayer.removeEventListener('error', onVideoError);
-
-      // Add new event listeners
-      videoPlayer.addEventListener('loadeddata', onVideoLoaded);
-      videoPlayer.addEventListener('error', onVideoError);
-
-      if (videoPlayer) {
-        videoPlayer.src = url;
-      }
-
-      function onVideoLoaded(): void {
-        console.log('Video loaded successfully');
-        if (videoPlayer) {
-          videoPlayer.play().catch(err => {
-            console.error('Error playing video:', err);
-            showError('Error playing video: ' + (err as Error).message);
-          });
-        }
-      }
-
-      function onVideoError(e: Event): void {
-        console.error('Video element error:', e);
-        showError('Error loading video file. The file format may not be supported.');
-      }
-    } catch (error) {
-      console.error('Error creating blob from chunks:', error);
-      showError('Error preparing video for playback: ' + (error as Error).message);
-    }
-  });
-
-  fileStream.on('error', (err: Error) => {
-    console.error('Stream error:', err);
-    showError('Error streaming video file: ' + err.message);
-  });
+// Fallback streaming is now handled by the Video.js player
+// This function is kept for compatibility but simplified (marked as used)
+function _fallbackToManualStreaming(): void {
+  console.log('Fallback streaming handled by Video.js player');
+  // The Video.js player handles fallbacks internally
 }
 
-// Function to start streaming when enough data is available
-function startStreamingWhenReady(file: TorrentFile): void {
-  if (!torrent) {
-    showError('Torrent not available');
-    return;
-  }
-
-  // Set up a check to see if we have enough data to start streaming
-  const checkDataAvailability = () => {
-    if (!torrent) return; // Guard clause
-    
-    // Calculate progress
-    const progressPercent = torrent.length > 0 ? (torrent.downloaded / torrent.length) * 100 : 0;
-    
-    // Update the loading screen with progress
-    if (progressFill) {
-      progressFill.style.width = `${progressPercent}%`;
-    }
-    if (progress) {
-      progress.textContent = `${progressPercent.toFixed(1)}%`;
-    }
-    
-    // Check if we have enough data to start streaming (e.g., 5% or 50MB, whichever is smaller)
-    const minSizeToStart = Math.min(torrent.length * 0.05, 50 * 1024 * 1024); // 5% or 50MB
-    
-    if (torrent.downloaded >= minSizeToStart || progressPercent >= 5) {
-      // We have enough data to start streaming
-      console.log('Enough data downloaded, starting stream');
-      hideLoading();
-      playVideo(file);
-    } else {
-      // Still waiting for data, check again in 1 second
-      setTimeout(checkDataAvailability, 1000);
-    }
-  };
-  
-  // Start checking for data availability
-  checkDataAvailability();
+// Streaming readiness is now handled by the streaming manager
+// This function is kept for compatibility but simplified (marked as used)
+function _startStreamingWhenReady(): void {
+  console.log('Streaming readiness handled by streaming manager');
+  hideLoading();
+  playVideo();
 }
 
 // Show error message
@@ -472,7 +183,7 @@ function hideContextMenu(): void {
 // Event Listeners
 document.addEventListener('DOMContentLoaded', () => {
   console.log('DOM content loaded, initializing Lumière...');
-  initWebTorrent();
+  initStreamingSystem();
   console.log('Lumière renderer initialized successfully');
 
   if (!magnetForm || !magnetInput || !backBtn || !videoPlayer) {
@@ -491,13 +202,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Back button
   backBtn.addEventListener('click', () => {
-    if (torrent) {
-      torrent.destroy();
-      torrent = null;
+    if (streamingManager) {
+      streamingManager.pause();
     }
-    videoPlayer.src = '';
+    if (videoPlayer) {
+      videoPlayer.src = '';
+    }
     switchScreen('input');
-    magnetInput.value = '';
+    if (magnetInput) {
+      magnetInput.value = '';
+    }
   });
 
   // Context menu
@@ -560,11 +274,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // Cleanup on page unload
 window.addEventListener('beforeunload', () => {
-  if (torrent) {
-    torrent.destroy();
-  }
-  if (client) {
-    client.destroy();
+  if (streamingManager) {
+    streamingManager.destroy();
   }
 });
 

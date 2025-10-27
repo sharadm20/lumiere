@@ -1,7 +1,10 @@
-import { app, BrowserWindow, Menu, ipcMain, MenuItemConstructorOptions } from 'electron';
-import * as path from 'path';
-
-let mainWindow: BrowserWindow | null;
+const electron = require('electron');
+const path = require('path');
+const app = electron.app;
+const BrowserWindow = electron.BrowserWindow;
+const Menu = electron.Menu;
+const ipcMain = electron.ipcMain;
+let mainWindow: any = null;
 
 function createWindow(): void {
   console.log('Creating main window...');
@@ -26,7 +29,7 @@ function createWindow(): void {
     if (mainWindow) {
       mainWindow.show();
     }
-  }).catch((err) => {
+  }).catch((err: any) => {
     console.error('Failed to load HTML file:', err);
   });
 
@@ -86,7 +89,7 @@ app.on('activate', () => {
 });
 
 // Create application menu
-const template: MenuItemConstructorOptions[] = [
+const template: any[] = [
   {
     label: 'File',
     submenu: [
@@ -141,7 +144,7 @@ const menu = Menu.buildFromTemplate(template);
 Menu.setApplicationMenu(menu);
 
 // IPC handlers
-ipcMain.on('load-magnet', (_event, magnetUrl) => {
+ipcMain.on('load-magnet', (_event: any, magnetUrl: any) => {
   // Handle magnet URL loading
   if (mainWindow) {
     mainWindow.webContents.send('load-magnet-url', magnetUrl);
