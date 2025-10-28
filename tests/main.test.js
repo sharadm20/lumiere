@@ -36,7 +36,7 @@ let main;
 beforeAll(() => {
   // Clear all mocks before importing main
   jest.clearAllMocks();
-  main = require('../main');
+  main = require('../dist/main');
 });
 
 // Create a mock createWindow function for testing
@@ -100,10 +100,10 @@ describe('Main Process Tests', () => {
         webPreferences: {
           nodeIntegration: true,
           contextIsolation: false,
-          enableRemoteModule: true
         },
         icon: expect.any(String),
-        title: 'Magnet Player'
+        title: 'Lumière',
+        show: false
       });
 
       expect(mockMainWindow.loadFile).toHaveBeenCalledWith('index.html');
@@ -261,7 +261,7 @@ describe('Main Process Tests', () => {
       expect(helpMenu.submenu).toHaveLength(1);
 
       const aboutAction = helpMenu.submenu[0];
-      expect(aboutAction.label).toBe('About Magnet Player');
+      expect(aboutAction.label).toBe('About Lumière');
     });
   });
 

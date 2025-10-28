@@ -1,9 +1,9 @@
 const electron = require('electron');
-const path = require('path');
 const app = electron.app;
 const BrowserWindow = electron.BrowserWindow;
 const Menu = electron.Menu;
 const ipcMain = electron.ipcMain;
+const path = require('path');
 let mainWindow: any = null;
 
 function createWindow(): void {
@@ -156,6 +156,3 @@ ipcMain.on('back-to-input', () => {
     mainWindow.webContents.send('show-input-screen');
   }
 });
-
-// Export for CommonJS compatibility
-export {};

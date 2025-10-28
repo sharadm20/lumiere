@@ -51,30 +51,57 @@ export class SegmentDownloader {
     });
   }
 
-  async downloadSegment(_segmentId: string): Promise<Buffer | null> {
+  async downloadSegment(segmentId: string): Promise<Buffer | null> {
     if (!this.videoFile || !this.torrent) {
       throw new Error('Torrent not initialized');
     }
 
-    // For now, download the entire file in chunks
-    // In a real implementation, you'd parse segmentId to determine which part to download
+    // Parse segmentId to determine which segment is being requested
+    const segmentIndex = this.parseSegmentIndex(segmentId);
+    
+    // Calculate the segment size based on file size to create proper segments
+    const segmentSize = Math.ceil(this.videoFile.length / 10); // Divide file into 10 segments
+    const start = segmentIndex * segmentSize;
+    const end = Math.min(start + segmentSize - 1, this.videoFile.length - 1);
+
+    // Check if the requested segment is beyond the file size
+    if (start >= this.videoFile.length) {
+      return null; // No more segments to return
+    }
+
     return new Promise((resolve, reject) => {
-      const chunks: Buffer[] = [];
-      const stream = this.videoFile!.createReadStream();
+      try {
+        // Create a stream for the specific byte range
+        const stream = this.videoFile.createReadStream({ start, end });
+        const chunks: Buffer[] = [];
 
-      stream.on('data', (chunk: Buffer) => {
-        chunks.push(chunk);
-      });
+        stream.on('data', (chunk: Buffer) => {
+          chunks.push(chunk);
+        });
 
-      stream.on('end', () => {
-        const buffer = Buffer.concat(chunks);
-        resolve(buffer);
-      });
+        stream.on('end', () => {
+          const buffer = Buffer.concat(chunks);
+          resolve(buffer);
+        });
 
-      stream.on('error', (err: any) => {
-        reject(err);
-      });
+        stream.on('error', (err: any) => {
+          console.error(`Error reading segment range ${start}-${end}:`, err);
+          reject(err);
+        });
+      } catch (error) {
+        console.error('Error creating stream for segment:', error);
+        reject(error);
+      }
     });
+  }
+
+  private parseSegmentIndex(segmentId: string): number {
+    // Extract segment index from segmentId like "segment1", "segment2", etc.
+    const match = segmentId.match(/segment(\d+)/);
+    if (match) {
+      return parseInt(match[1], 10) - 1; // Convert to 0-based index
+    }
+    return 0;
   }
 
   getProgress(): { downloaded: number; total: number; progress: number } {

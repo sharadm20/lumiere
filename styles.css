@@ -240,3 +240,130 @@ h1 {
         font-size: 1rem;
     }
 }
+
+/* Video.js player specific styles */
+/* Override default Video.js styles for better appearance */
+.video-js {
+    width: 100% !important;
+    height: 100% !important;
+    background: #000 !important;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif !important;
+}
+
+.video-js .vjs-tech {
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+}
+
+.video-js .vjs-control-bar {
+    background: linear-gradient(rgba(0, 0, 0, 0.8), rgba(0, 0, 0, 0.6)) !important;
+    border-radius: 8px !important;
+    padding: 10px 16px !important;
+    font-size: 14px !important;
+    bottom: 15px !important;
+    left: 15px !important;
+    right: 15px !important;
+    width: auto !important;
+    height: 45px !important;
+    backdrop-filter: blur(4px) !important;
+}
+
+.video-js .vjs-button {
+    color: rgba(255, 255, 255, 0.9) !important;
+    border-radius: 4px !important;
+    margin: 0 3px !important;
+    padding: 6px 8px !important;
+    background: rgba(255, 255, 255, 0.1) !important;
+    transition: all 0.2s ease !important;
+    min-width: 36px !important;
+    justify-content: center !important;
+    align-items: center !important;
+    display: flex !important;
+}
+
+.video-js .vjs-button:hover {
+    background: rgba(0, 212, 255, 0.5) !important;
+    color: #fff !important;
+    transform: scale(1.1) !important;
+}
+
+.video-js .vjs-play-progress,
+.video-js .vjs-slider {
+    background: rgba(255, 255, 255, 0.3) !important;
+}
+
+.video-js .vjs-play-progress {
+    background: linear-gradient(90deg, #00d4ff, #0099cc) !important;
+}
+
+.video-js .vjs-volume-level {
+    background: linear-gradient(90deg, #00d4ff, #0099cc) !important;
+}
+
+.video-js .vjs-time-divider {
+    color: rgba(255, 255, 255, 0.8) !important;
+    padding: 0 4px !important;
+}
+
+.video-js .vjs-current-time,
+.video-js .vjs-duration {
+    color: rgba(255, 255, 255, 0.9) !important;
+    padding: 0 4px !important;
+    font-size: 13px !important;
+}
+
+.video-js .vjs-progress-control {
+    margin: 0 8px !important;
+    height: 6px !important;
+    border-radius: 3px !important;
+    background: rgba(255, 255, 255, 0.2) !important;
+}
+
+.video-js .vjs-slider {
+    border-radius: 3px !important;
+}
+
+.video-js .vjs-volume-bar {
+    width: 50px !important;
+}
+
+.video-js .vjs-volume-panel {
+    margin: 0 5px !important;
+}
+
+/* Ensure controls don't overlay video content */
+.video-js .vjs-poster {
+    background-size: cover !important;
+    object-fit: cover !important;
+}
+
+/* Fullscreen controls positioning */
+.video-js.vjs-fullscreen .vjs-control-bar {
+    bottom: 20px !important;
+    left: 20px !important;
+    right: 20px !important;
+    border-radius: 10px !important;
+}
+
+/* Quality selector styling */
+.video-js .vjs-quality-selector {
+    margin: 0 3px !important;
+}
+
+.video-js .vjs-menu-button {
+    margin: 0 3px !important;
+}
+
+/* Adjust video wrapper to account for controls */
+.video-wrapper {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: #000;
+    position: relative;
+    padding-bottom: 70px; /* Space for controls */
+}

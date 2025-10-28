@@ -71,24 +71,32 @@ export class StreamServer {
     // In a real implementation, this would be based on the actual video segments
     const segments = await this.getAvailableSegments();
 
-    let playlist = '#EXTM3U8\n';
-    playlist += '#EXT-X-VERSION:3\n';
-    playlist += '#EXT-X-TARGETDURATION:10\n';
-    playlist += '#EXT-X-MEDIA-SEQUENCE:0\n';
+    let playlist = '#EXTM3U\\n';
+    playlist += '#EXT-X-VERSION:3\\n';
+    playlist += '#EXT-X-TARGETDURATION:10\\n';
+    playlist += '#EXT-X-MEDIA-SEQUENCE:0\\n';
 
     for (const segment of segments) {
-      playlist += `#EXTINF:10.0,\n`;
-      playlist += `segment/${segment}\n`;
+      playlist += `#EXTINF:10.0,\\n`;
+      playlist += `segment/${segment}\\n`;
     }
 
-    playlist += '#EXT-X-ENDLIST\n';
+    playlist += '#EXT-X-ENDLIST\\n';
     return playlist;
   }
 
   private async getAvailableSegments(): Promise<string[]> {
-    // This is a placeholder - in reality, you'd track available segments
-    // For now, return some dummy segments
-    return ['segment1', 'segment2', 'segment3'];
+    // In a real implementation, this would be based on actual video file structure
+    // For now, we'll return a more reasonable number of segments
+    // This should ideally be based on the actual video duration and segment duration
+    const segmentCount = 10; // Return 10 segments as an example
+    const segments: string[] = [];
+    
+    for (let i = 1; i <= segmentCount; i++) {
+      segments.push(`segment${i}`);
+    }
+    
+    return segments;
   }
 
   private startServer(): void {

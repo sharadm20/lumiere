@@ -62,7 +62,7 @@ global.URL = {
 global.Blob = jest.fn();
 
 // Import the renderer code after mocks are set up
-const renderer = require('../renderer');
+const renderer = require('../dist/renderer');
 
 describe('Renderer Tests', () => {
   let mockClient;

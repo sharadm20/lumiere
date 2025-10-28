@@ -1,0 +1,9 @@
+{
+  "tools": {
+    "shell": {
+      "enableInteractiveShell": true,
+      "showColor": true,
+      "pager": "less"
+    }
+  }
+}

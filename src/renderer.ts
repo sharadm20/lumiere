@@ -1,10 +1,11 @@
 // Use require in a way that avoids module system in the compiled output
 const { ipcRenderer } = require('electron');
 
-// Import our new streaming system
-import { StreamingManager } from './streaming-manager';
+// Import our new streaming system - path from root directory where index.html is located
+const streamingManagerModule = require('./dist/streaming-manager');
+const StreamingManager = streamingManagerModule.StreamingManager;
 
-let streamingManager: StreamingManager;
+let streamingManager: any;
 let currentScreen: 'input' | 'player' = 'input';
 
 // DOM Elements
@@ -130,11 +131,11 @@ function playVideo(): void {
   }
 
   try {
-    streamingManager.play().catch(err => {
-      console.error('Error playing video:', err);
-      showError('Error playing video: ' + (err as Error).message);
-    });
-  } catch (error) {
+      streamingManager.play().catch((err: any) => {
+        console.error('Error playing video:', err);
+        showError('Error playing video: ' + (err as Error).message);
+      });
+    } catch (error) {
     console.error('Error in playVideo:', error);
     showError('Error playing video: ' + (error as Error).message);
   }
